@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentinel-1 Ship Detection Data Explorer</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC4="
+    crossorigin=""
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="py-4 bg-primary text-white">
+    <div class="container">
+      <h1 class="h3 mb-0">Sentinel-1 Ship Detection Data Explorer</h1>
+      <p class="mb-0">
+        Select an area of interest (AOI) and time range to discover Sentinel-1 scenes
+        suited for ship detection workflows.
+      </p>
+    </div>
+  </header>
+
+  <main class="container my-4">
+    <div class="row g-4">
+      <section class="col-12 col-lg-4">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h2 class="h5">Query Parameters</h2>
+            <form id="search-form" class="mt-3">
+              <div class="mb-3">
+                <label for="start-date" class="form-label">Start date</label>
+                <input
+                  type="date"
+                  id="start-date"
+                  class="form-control"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="end-date" class="form-label">End date</label>
+                <input type="date" id="end-date" class="form-control" required />
+              </div>
+              <div class="mb-3">
+                <label for="polarisation" class="form-label">Polarisation</label>
+                <select id="polarisation" class="form-select">
+                  <option value="">Any</option>
+                  <option value="VV">VV</option>
+                  <option value="VH">VH</option>
+                  <option value="VV,VH">Dual (VV/VH)</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="product-type" class="form-label">Product type</label>
+                <select id="product-type" class="form-select">
+                  <option value="">Any</option>
+                  <option value="GRD">GRD</option>
+                  <option value="SLC">SLC</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Area of interest</label>
+                <p class="small text-muted mb-2">
+                  Draw a rectangle on the map to define the AOI. The selected bounding box
+                  will be used when searching.
+                </p>
+                <button type="button" id="draw-aoi" class="btn btn-outline-primary btn-sm mb-2">
+                  Draw AOI
+                </button>
+                <div class="alert alert-info py-2" role="alert">
+                  <span id="bbox-display">No AOI selected.</span>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Search scenes</button>
+            </form>
+          </div>
+        </div>
+        <div class="card shadow-sm mt-4">
+          <div class="card-body">
+            <h2 class="h5">How to use the results</h2>
+            <p class="small text-muted">
+              Download the SAFE archive from the results table to run your ship detection
+              pipeline. Ground Range Detected (GRD) scenes in VV or dual VV/VH polarisations
+              typically work well for maritime monitoring. Use ESA SNAP, SentinelHub, or
+              your own processing stack to derive ship detections from the radar intensity
+              measurements.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="col-12 col-lg-8">
+        <div id="map"></div>
+        <div id="map-status" class="alert alert-warning mt-3 d-none" role="alert"></div>
+        <div class="card shadow-sm mt-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h2 class="h5 mb-0">Search Results</h2>
+              <span id="result-count" class="badge bg-secondary">0 scenes</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th scope="col">Identifier</th>
+                    <th scope="col">Acquisition</th>
+                    <th scope="col">Polarisation</th>
+                    <th scope="col">Product</th>
+                    <th scope="col">Preview</th>
+                    <th scope="col">Download</th>
+                  </tr>
+                </thead>
+                <tbody id="results-body">
+                  <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                      Draw an AOI and run a search to see available scenes.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="py-4 bg-light border-top">
+    <div class="container">
+      <p class="small text-muted mb-0">
+        Data is retrieved from the Copernicus Data Space Ecosystem catalogue. Availability
+        may vary by region. Consider creating a free account for higher rate limits when
+        running frequent searches.
+      </p>
+    </div>
+  </footer>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j7kGStf3onxT47nIu01Hq6Yr2vNh+l5pSp0Vb70="
+    crossorigin=""
+  ></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
