@@ -3,48 +3,6 @@ const DEFAULT_ZOOM = 2;
 const MAX_RESULTS = 50;
 const DEFAULT_DATE_OFFSET_DAYS = 7;
 
-const map = L.map("map").setView(DEFAULT_CENTER, DEFAULT_ZOOM);
-
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-}).addTo(map);
-
-const drawnItems = L.featureGroup();
-map.addLayer(drawnItems);
-
-const drawOptions = {
-  draw: {
-    polygon: false,
-    polyline: false,
-    circle: false,
-    marker: false,
-    circlemarker: false,
-    rectangle: {
-      showArea: true,
-      shapeOptions: {
-        color: "#2563eb",
-        weight: 2,
-      },
-    },
-  },
-  edit: {
-    featureGroup: drawnItems,
-  },
-};
-
-let drawControl = null;
-
-if (L.Control && L.Control.Draw) {
-  drawControl = new L.Control.Draw(drawOptions);
-  map.addControl(drawControl);
-} else {
-  clearResults("Drawing tools failed to load. Please check your connection and reload.");
-}
-
-let currentBbox = null;
-
 const bboxDisplay = document.getElementById("bbox-display");
 const drawButton = document.getElementById("draw-aoi");
 const resultCount = document.getElementById("result-count");
@@ -52,6 +10,62 @@ const resultsBody = document.getElementById("results-body");
 const form = document.getElementById("search-form");
 const startDateInput = document.getElementById("start-date");
 const endDateInput = document.getElementById("end-date");
+const mapStatus = document.getElementById("map-status");
+
+let map = null;
+let drawnItems = null;
+let drawControl = null;
+let currentBbox = null;
+
+function setMapStatus(message, level = "warning") {
+  if (!mapStatus) return;
+  mapStatus.textContent = message;
+  mapStatus.classList.remove("d-none");
+  mapStatus.classList.remove("alert-warning", "alert-danger", "alert-info", "alert-success");
+  mapStatus.classList.add(`alert-${level}`);
+}
+
+function clearMapStatus() {
+  if (!mapStatus) return;
+  mapStatus.textContent = "";
+  mapStatus.classList.add("d-none");
+}
+
+function initializeMap() {
+  const mapContainer = document.getElementById("map");
+
+  if (!mapContainer) {
+    setMapStatus("Map container is missing from the page.", "danger");
+    return null;
+  }
+
+  if (typeof window.L === "undefined") {
+    setMapStatus("Map library failed to load. Please check your connection and reload.", "danger");
+    return null;
+  }
+
+  const leafletMap = L.map(mapContainer).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  })
+    .on("tileerror", () => {
+      setMapStatus("Map tiles failed to load. Check your connection or try again.", "danger");
+    })
+    .addTo(leafletMap);
+
+  drawnItems = L.featureGroup();
+  leafletMap.addLayer(drawnItems);
+
+  leafletMap.whenReady(() => {
+    leafletMap.invalidateSize();
+    clearMapStatus();
+  });
+
+  return leafletMap;
+}
 
 function setDefaultDates() {
   const today = new Date();
@@ -102,7 +116,38 @@ function clearResults(message = "Draw an AOI and run a search to see available s
   resultCount.textContent = "0 scenes";
 }
 
-if (L.Draw) {
+map = initializeMap();
+
+const drawOptions = {
+  draw: {
+    polygon: false,
+    polyline: false,
+    circle: false,
+    marker: false,
+    circlemarker: false,
+    rectangle: {
+      showArea: true,
+      shapeOptions: {
+        color: "#2563eb",
+        weight: 2,
+      },
+    },
+  },
+  edit: {
+    featureGroup: drawnItems,
+  },
+};
+
+if (map && L.Control && L.Control.Draw) {
+  drawControl = new L.Control.Draw(drawOptions);
+  map.addControl(drawControl);
+} else if (!map) {
+  setMapStatus("Map failed to initialise. Please reload the page.", "danger");
+} else {
+  setMapStatus("Drawing tools failed to load. Please check your connection and reload.", "danger");
+}
+
+if (map && L.Draw) {
   map.on(L.Draw.Event.CREATED, (event) => {
     drawnItems.clearLayers();
     drawnItems.addLayer(event.layer);
@@ -123,6 +168,11 @@ if (L.Draw) {
 
 if (drawButton) {
   drawButton.addEventListener("click", () => {
+    if (!map) {
+      setMapStatus("Map is not ready yet. Please reload and try again.", "danger");
+      return;
+    }
+
     if (!L.Draw || !L.Draw.Rectangle) {
       clearResults("Drawing tools failed to load. Please refresh and try again.");
       return;
