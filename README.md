@@ -23,6 +23,14 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser and loa
 > **Note**
 > The Copernicus Data Space API enforces rate limiting. For heavy usage, create a free account and generate an access token, then add it as a bearer token in your browser session or proxy server.
 
+## Testing
+
+Minimal structural checks are provided via a Node test script:
+
+```bash
+npm test
+```
+
 ## Next steps
 
 - Integrate with a backend that queues ship detection processing jobs using SNAP, SentinelHub, or bespoke SAR pipelines.

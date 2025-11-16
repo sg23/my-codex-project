@@ -1,6 +1,7 @@
 const DEFAULT_CENTER = [20, 0];
 const DEFAULT_ZOOM = 2;
 const MAX_RESULTS = 50;
+const DEFAULT_DATE_OFFSET_DAYS = 7;
 
 const map = L.map("map").setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
@@ -41,6 +42,18 @@ const bboxDisplay = document.getElementById("bbox-display");
 const resultCount = document.getElementById("result-count");
 const resultsBody = document.getElementById("results-body");
 const form = document.getElementById("search-form");
+const startDateInput = document.getElementById("start-date");
+const endDateInput = document.getElementById("end-date");
+
+function setDefaultDates() {
+  const today = new Date();
+  const from = new Date();
+  from.setDate(today.getDate() - DEFAULT_DATE_OFFSET_DAYS);
+
+  const toIsoDate = (date) => date.toISOString().slice(0, 10);
+  startDateInput.value = toIsoDate(from);
+  endDateInput.value = toIsoDate(today);
+}
 
 function formatIsoDate(date, endOfDay = false) {
   const dt = new Date(date);
@@ -223,4 +236,5 @@ async function performSearch(event) {
 
 form.addEventListener("submit", performSearch);
 
+setDefaultDates();
 clearResults();
