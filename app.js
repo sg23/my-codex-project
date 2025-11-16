@@ -11,10 +11,10 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 }).addTo(map);
 
-const drawnItems = new L.FeatureGroup();
+const drawnItems = L.featureGroup();
 map.addLayer(drawnItems);
 
-const drawControl = new L.Control.Draw({
+const drawOptions = {
   draw: {
     polygon: false,
     polyline: false,
@@ -32,13 +32,21 @@ const drawControl = new L.Control.Draw({
   edit: {
     featureGroup: drawnItems,
   },
-});
+};
 
-map.addControl(drawControl);
+let drawControl = null;
+
+if (L.Control && L.Control.Draw) {
+  drawControl = new L.Control.Draw(drawOptions);
+  map.addControl(drawControl);
+} else {
+  clearResults("Drawing tools failed to load. Please check your connection and reload.");
+}
 
 let currentBbox = null;
 
 const bboxDisplay = document.getElementById("bbox-display");
+const drawButton = document.getElementById("draw-aoi");
 const resultCount = document.getElementById("result-count");
 const resultsBody = document.getElementById("results-body");
 const form = document.getElementById("search-form");
@@ -94,22 +102,36 @@ function clearResults(message = "Draw an AOI and run a search to see available s
   resultCount.textContent = "0 scenes";
 }
 
-map.on(L.Draw.Event.CREATED, (event) => {
-  drawnItems.clearLayers();
-  drawnItems.addLayer(event.layer);
-  updateBboxDisplay(event.layer.getBounds());
-});
+if (L.Draw) {
+  map.on(L.Draw.Event.CREATED, (event) => {
+    drawnItems.clearLayers();
+    drawnItems.addLayer(event.layer);
+    updateBboxDisplay(event.layer.getBounds());
+  });
 
-map.on(L.Draw.Event.EDITED, (event) => {
-  const layer = event.layers.getLayers()[0];
-  updateBboxDisplay(layer ? layer.getBounds() : null);
-});
+  map.on(L.Draw.Event.EDITED, (event) => {
+    const layer = event.layers.getLayers()[0];
+    updateBboxDisplay(layer ? layer.getBounds() : null);
+  });
 
-map.on(L.Draw.Event.DELETED, () => {
-  currentBbox = null;
-  updateBboxDisplay(null);
-  clearResults();
-});
+  map.on(L.Draw.Event.DELETED, () => {
+    currentBbox = null;
+    updateBboxDisplay(null);
+    clearResults();
+  });
+}
+
+if (drawButton) {
+  drawButton.addEventListener("click", () => {
+    if (!L.Draw || !L.Draw.Rectangle) {
+      clearResults("Drawing tools failed to load. Please refresh and try again.");
+      return;
+    }
+
+    const rectangleDrawer = new L.Draw.Rectangle(map, drawOptions.draw.rectangle);
+    rectangleDrawer.enable();
+  });
+}
 
 function buildSearchUrl(params) {
   const searchParams = new URLSearchParams({
