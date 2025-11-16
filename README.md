@@ -20,6 +20,16 @@ python -m http.server 8000
 
 Then open [http://localhost:8000](http://localhost:8000) in your browser and load `index.html`.
 
+### Quick view without installing anything
+
+If you do not want to install extra dependencies, modern browsers also allow opening the interface directly from the
+filesystem:
+
+1. Download or clone this repository.
+2. Double-click `index.html` (or use `File → Open` in your browser to select it) to load the interface.
+3. If the map tiles fail to load because of local file restrictions, fall back to the `python -m http.server` method above
+   to serve the files over HTTP.
+
 > **Note**
 > The Copernicus Data Space API enforces rate limiting. For heavy usage, create a free account and generate an access token, then add it as a bearer token in your browser session or proxy server.
 
