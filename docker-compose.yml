@@ -1,0 +1,19 @@
+services:
+  bauv-maps:
+    image: kaaninan/bauv-maps:latest
+    container_name: bauv-maps
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    command: ["--public_url", "http://localhost:8000"]
+    volumes:
+      - ./data/tilesets:/usr/src/server/src/tileserver/tilesets
+      - ./data/styles:/usr/src/server/src/tileserver/styles
+      - ./data/symbols:/usr/src/server/src/public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
